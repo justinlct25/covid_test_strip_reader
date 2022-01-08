@@ -9,27 +9,53 @@
     <script src="./lib/image-loader.js"></script>
     <script src="./lib/imagenetClasses.js"></script>
     <style>
+        .result {
+            background: black;
+            height: max-content;
+            text-align: center;
+            color: white;
+            padding: 10px;
+            font-size: 20px;
+        }
+        
+        #status {
+            height: max-content;
+            padding: 10px;
+            align-items: center;
+            justify-content: center;
+            background: black;
+        }
+        
         video {
             /* width: 400px; */
             /* height: 600px; */
             width: 100%;
             height: 80%;
+            display: none;
         }
         
         font {
             font-family: "微软雅黑";
+        }
+        
+        #canvas {
+            width: 100%;
         }
     </style>
     <link href="index.css" rel="stylesheet">
 </head>
 
 <body>
-    <h1>COVID</h1>
+    <!-- <h1>COVID</h1> -->
     <div>
-        <video id="video" width="750" height="560" autoplay></video>
+        <div class="result">COVID Test Strip Reader</div>
+        <video id="video" autoplay></video>
         <!-- <button id="snap">Snap Photo</button> -->
         <!-- <canvas id="canvas" hidden="false" width="750" height="560"></canvas> -->
         <canvas id="canvas"></canvas>
+        <div id="status">
+            <div style="color:purple; font-size: 20px; text-align:center">Result: Invalid</div>
+        </div>
         <canvas id="canvas_opencv"></canvas>
         <div class="slidercontainer">
             <!-- <input type="range" min="0" max="255" value="100" class="slider" id="LH"> -->
@@ -41,7 +67,8 @@
         <div class="slidercontainer">
             <!-- <input type="range" min="0" max="255" value="150" class="slider" id="LS"> -->
             <!-- <input type="range" min="0" max="255" value="110" class="slider" id="LS"> -->
-            <input type="range" min="0" max="255" value="70" class="slider" id="LS">
+            <!-- <input type="range" min="0" max="255" value="70" class="slider" id="LS"> -->
+            <input type="range" min="0" max="255" value="20" class="slider" id="LS">
             <p><span id="valueLS"></span></p>
         </div>
         <div class="slidercontainer">
@@ -168,8 +195,12 @@
                                 let edg = new cv.Mat(video.height, video.width, cv.CV_8UC1)
                                 let dst = new cv.Mat(video.height, video.width, cv.CV_8UC4)
                                 let ctr = cv.Mat.zeros(video.height, video.width, cv.CV_8UC3);
-                                let crop_c = new cv.Mat(video.height * ((1.7 / 17.7) * 0.8), video.width * ((0.7 / 17.7) * 0.8), cv.CV_8UC1)
-                                let crop_t = new cv.Mat(video.height * ((1.7 / 17.7) * 0.8), video.width * ((0.7 / 17.7) * 0.8), cv.CV_8UC1)
+                                let hsv_c = new cv.Mat(video.height * ((1.7 / 17.7) * 0.8), video.width * ((0.7 / 17.7) * 0.8), cv.CV_8UC1)
+                                let hsv_t = new cv.Mat(video.height * ((1.7 / 17.7) * 0.8), video.width * ((0.7 / 17.7) * 0.8), cv.CV_8UC1)
+                                let rng_c = new cv.Mat(video.height * ((1.7 / 17.7) * 0.8), video.width * ((0.7 / 17.7) * 0.8), cv.CV_8UC1)
+                                let rng_t = new cv.Mat(video.height * ((1.7 / 17.7) * 0.8), video.width * ((0.7 / 17.7) * 0.8), cv.CV_8UC1)
+                                let hasC = false
+                                let hasT = false
                                     //3.4*0.7  6.3*2.1
                                 let box_dimension_y = video.videoHeight * 0.8
                                 let box_dimension_x = box_dimension_y * (5 / 17.7)
@@ -210,21 +241,35 @@
                                         cv.cvtColor(src, hsv, cv.COLOR_BGR2HSV)
 
                                         // cropping hsv for c and t
-                                        console.log(Math.round(point1_corner.x + (2.1 / 17.7) * 0.8))
-                                        console.log(Math.round(point1_corner.y + (6.3 / 17.7) * 0.8))
-                                        console.log(Math.round((0.7 / 17.7) * 0.8))
-                                        console.log(Math.round((3.4 / 17.7) * 0.8))
                                         rect_c = new cv.Rect(Math.round(point1_corner.x + (2.1 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (6.3 / 17.7) * 0.8 * video.videoHeight), Math.round((0.7 / 17.7) * 0.8 * video.videoHeight), Math.round((1.7 / 17.7) * 0.8 * video.videoHeight))
                                         rect_t = new cv.Rect(Math.round(point1_corner.x + (2.1 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + ((6.3 + 1.7) / 17.7) * 0.8 * video.videoHeight), Math.round((0.7 / 17.7) * 0.8 * video.videoHeight), Math.round((1.7 / 17.7) * 0.8 * video.videoHeight))
-                                        crop_c = hsv.roi(rect_c)
-                                        crop_t = hsv.roi(rect_t)
+                                        hsv_c = hsv.roi(rect_c)
+                                        hsv_t = hsv.roi(rect_t)
 
                                         // hsv in range
                                         let lower = [LH, LS, LV, 0];
                                         let higher = [HH, HS, HV, 0];
-                                        let low = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), lower);
-                                        let high = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), higher);
-                                        cv.inRange(hsv, low, high, rng)
+                                        // let low = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), lower);
+                                        // let high = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), higher);
+                                        // cv.inRange(hsv, low, high, rng)
+                                        let low = new cv.Mat(hsv_c.rows, hsv_c.cols, hsv_c.type(), lower);
+                                        let high = new cv.Mat(hsv_c.rows, hsv_c.cols, hsv_c.type(), higher);
+                                        cv.inRange(hsv_c, low, high, rng_c)
+                                        cv.inRange(hsv_t, low, high, rng_t)
+
+                                        // detect result lines of C & T
+                                        hasC = cv.countNonZero(rng_c)
+                                        hasT = cv.countNonZero(rng_t)
+                                        if (hasC && hasT) {
+                                            // cv.putText(src, "Result: Positive", point1_corner, cv.FONT_HERSHEY_SIMPLEX, 1, color, 3, 2)
+                                            document.getElementById("status").innerHTML = `<div style="color:red; font-size: 25px; text-align:center">Result: Positive</div>`
+                                            console.log("positive")
+                                        }
+                                        if (!hasC && hasT) {
+                                            // cv.putText(src, "Result: Invalid", (100, 100), cv.FONT_HERSHEY_SIMPLEX, 1, color, 3, 2)
+                                            document.getElementById("status").innerHTML = `<div style="color:purple; font-size: 25px; text-align:center">Result: Invalid</div>`
+                                            console.log("invalid")
+                                        }
 
                                         // canny edge detection
                                         cv.Canny(rng, edg, 200, 600, 3, false)
@@ -236,7 +281,7 @@
                                             cv.drawContours(ctr, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
                                         }
 
-                                        cv.imshow("canvas_opencv", crop_t)
+                                        cv.imshow("canvas_opencv", src.roi(rect_t))
 
                                         cv.imshow("canvas", src);
                                         let delay = 1000 / FPS - (Date.now() - begin)
