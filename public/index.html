@@ -68,7 +68,7 @@
             <!-- <input type="range" min="0" max="255" value="150" class="slider" id="LS"> -->
             <!-- <input type="range" min="0" max="255" value="110" class="slider" id="LS"> -->
             <!-- <input type="range" min="0" max="255" value="70" class="slider" id="LS"> -->
-            <input type="range" min="0" max="255" value="20" class="slider" id="LS">
+            <input type="range" min="0" max="255" value="60" class="slider" id="LS">
             <p><span id="valueLS"></span></p>
         </div>
         <div class="slidercontainer">
@@ -135,6 +135,9 @@
             cv['onRuntimeInitialized'] = () => {
                 console.log("OpenCV.js is ready")
                     //video
+                    // video.setAttribute('autoplay', '');
+                    // video.setAttribute('muted', '');
+                    // video.setAttribute('playsinline', '');
                 if (navigator.mediaDevices === undefined) {
                     navigator.mediaDevices = {};
                 }
