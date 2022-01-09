@@ -57,18 +57,22 @@
             <div style="color:purple; font-size: 20px; text-align:center">Result: Invalid</div>
         </div>
         <canvas id="canvas_opencv"></canvas>
+        <div id="logger"></div>
+        <div class="slidercontainer">
+            <input type="range" min="0" max="255" value="120" class="slider" id="thresh_black">
+            <p><span id="value_thresh_black"></span></p>
+        </div>
         <div class="slidercontainer">
             <!-- <input type="range" min="0" max="255" value="100" class="slider" id="LH"> -->
             <!-- <input type="range" min="0" max="255" value="116" class="slider" id="LH">  -->
             <input type="range" min="0" max="255" value="74" class="slider" id="LH">
-
             <p><span id="valueLH"></span></p>
         </div>
         <div class="slidercontainer">
             <!-- <input type="range" min="0" max="255" value="150" class="slider" id="LS"> -->
             <!-- <input type="range" min="0" max="255" value="110" class="slider" id="LS"> -->
             <!-- <input type="range" min="0" max="255" value="70" class="slider" id="LS"> -->
-            <input type="range" min="0" max="255" value="60" class="slider" id="LS">
+            <input type="range" min="0" max="255" value="30" class="slider" id="LS">
             <p><span id="valueLS"></span></p>
         </div>
         <div class="slidercontainer">
@@ -115,6 +119,10 @@
         let value_HS = document.getElementById("valueHS")
         let value_HV = document.getElementById("valueHV")
 
+        let slider_thresh = document.getElementById("thresh_black")
+        let thresh_black = parseInt(slider_thresh.value)
+        let value_thresh_black = document.getElementById("value_thresh_black")
+
 
         function updateValues() {
             LH = parseFloat(slider_LH.value)
@@ -129,6 +137,9 @@
             value_HH.innerHTML = slider_HH.value
             value_HS.innerHTML = slider_HS.value
             value_HV.innerHTML = slider_HV.value
+
+            thresh_black = parseInt(slider_thresh.value)
+            value_thresh_black.innerHTML = slider_thresh.value
         }
 
         function onOpenCvReady() {
@@ -202,13 +213,51 @@
                                 let hsv_t = new cv.Mat(video.height * ((1.7 / 17.7) * 0.8), video.width * ((0.7 / 17.7) * 0.8), cv.CV_8UC1)
                                 let rng_c = new cv.Mat(video.height * ((1.7 / 17.7) * 0.8), video.width * ((0.7 / 17.7) * 0.8), cv.CV_8UC1)
                                 let rng_t = new cv.Mat(video.height * ((1.7 / 17.7) * 0.8), video.width * ((0.7 / 17.7) * 0.8), cv.CV_8UC1)
+                                let rng_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let src_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let hsv_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let gray_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let blur_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let thresh_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let kernel_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let close_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let dilate_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let edg_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
+
+                                let check1 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let check2 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let check3 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let src_ck1 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let src_ck2 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let src_ck3 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let gray_ck1 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let gray_ck2 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let gray_ck3 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let thresh_ck1 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let thresh_ck2 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
+                                let thresh_ck3 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
+
+
+
+
+
+
+
                                 let hasC = false
                                 let hasT = false
-                                    //3.4*0.7  6.3*2.1
+                                let correctPosition1 = false
+                                let correctPosition2 = false
+                                let correctPosition3 = false
+
+                                //3.4*0.7  6.3*2.1
                                 let box_dimension_y = video.videoHeight * 0.8
                                 let box_dimension_x = box_dimension_y * (5 / 17.7)
                                 let contours = new cv.MatVector();
                                 let hierarchy = new cv.Mat();
+                                let contours_qr = new cv.MatVector();
+
+
+
                                 const FPS = 30
 
                                 function processVideo() {
@@ -243,48 +292,140 @@
                                         // bgr to hsv
                                         cv.cvtColor(src, hsv, cv.COLOR_BGR2HSV)
 
-                                        // cropping hsv for c and t
-                                        rect_c = new cv.Rect(Math.round(point1_corner.x + (2.1 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (6.3 / 17.7) * 0.8 * video.videoHeight), Math.round((0.7 / 17.7) * 0.8 * video.videoHeight), Math.round((1.7 / 17.7) * 0.8 * video.videoHeight))
-                                        rect_t = new cv.Rect(Math.round(point1_corner.x + (2.1 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + ((6.3 + 1.7) / 17.7) * 0.8 * video.videoHeight), Math.round((0.7 / 17.7) * 0.8 * video.videoHeight), Math.round((1.7 / 17.7) * 0.8 * video.videoHeight))
-                                        hsv_c = hsv.roi(rect_c)
-                                        hsv_t = hsv.roi(rect_t)
+                                        // detect QR code for position detection
+                                        rect_qr = new cv.Rect(Math.round(point1_corner.x + (1 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (2.3 / 17.7) * 0.8 * video.videoHeight), Math.round((3.0 / 17.7) * 0.8 * video.videoHeight), Math.round((3.0 / 17.7) * 0.8 * video.videoHeight))
+                                            // rect_qr = new cv.Rect(Math.round(point1_corner.x + (0.5 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (1 / 17.7) * 0.8 * video.videoHeight), Math.round((3.0 / 17.7) * 0.8 * video.videoHeight), Math.round((3.0 / 17.7) * 0.8 * video.videoHeight))
+                                        src_qr = src.roi(rect_qr)
+                                        cv.cvtColor(src_qr, gray_qr, cv.COLOR_BGR2GRAY)
+                                        cv.threshold(gray_qr, thresh_qr, thresh_black, 255, cv.THRESH_BINARY)
+                                            // if (cv.countNonZero(thresh_qr) < 4000) {
+                                            // console.log((cv.countNonZero(thresh_qr) / (thresh_qr.cols * thresh_qr.rows)) * 100)
+                                        document.getElementById("logger").innerHTML = `${((cv.countNonZero(thresh_qr) / (thresh_qr.cols * thresh_qr.rows)) * 100)}`
+                                        if (((cv.countNonZero(thresh_qr) / (thresh_qr.cols * thresh_qr.rows)) * 100) < 70) {
+                                            correctPosition1 = true
+                                                // console.log(thresh_qr.shape())
+                                        } else {
+                                            correctPosition1 = false
+                                        }
+                                        // console.log(cv.countNonZero(thresh_qr))
 
-                                        // hsv in range
-                                        let lower = [LH, LS, LV, 0];
-                                        let higher = [HH, HS, HV, 0];
-                                        // let low = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), lower);
-                                        // let high = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), higher);
+                                        let rect_ck1 = new cv.Rect(Math.round(point1_corner.x + (1.5 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (11.0 / 17.7) * 0.8 * video.videoHeight), Math.round((2.0 / 17.7) * 0.8 * video.videoHeight), Math.round((1.0 / 17.7) * 0.8 * video.videoHeight))
+                                        src_ck1 = src.roi(rect_ck1)
+                                        cv.cvtColor(src_ck1, gray_ck1, cv.COLOR_BGR2GRAY)
+                                        cv.threshold(gray_ck1, thresh_ck1, thresh_black, 255, cv.THRESH_BINARY)
+                                            // if (cv.countNonZero(thresh_ck1) > 900) {
+                                        if (((cv.countNonZero(thresh_ck1) / (thresh_ck1.cols * thresh_ck1.rows)) * 100) > 90) {
+                                            correctPosition2 = true
+                                        } else {
+                                            correctPosition2 = false
+                                        }
+                                        // console.log(cv.countNonZero(thresh_ck1))
+
+                                        let rect_ck2 = new cv.Rect(Math.round(point1_corner.x + (1.5 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (16.0 / 17.7) * 0.8 * video.videoHeight), Math.round((2.0 / 17.7) * 0.8 * video.videoHeight), Math.round((1.0 / 17.7) * 0.8 * video.videoHeight))
+                                        src_ck2 = src.roi(rect_ck2)
+                                        cv.cvtColor(src_ck2, gray_ck2, cv.COLOR_BGR2GRAY)
+                                        cv.threshold(gray_ck2, thresh_ck2, thresh_black, 255, cv.THRESH_BINARY)
+                                            // if (cv.countNonZero(thresh_ck2) > 900) {
+                                        if (((cv.countNonZero(thresh_ck2) / (thresh_ck2.cols * thresh_ck2.rows)) * 100) > 90) {
+                                            correctPosition3 = true
+                                        } else {
+                                            correctPosition3 = false
+                                        }
+                                        // console.log(cv.countNonZero(thresh_ck2))
+
+                                        let rect_ck3 = new cv.Rect(Math.round(point1_corner.x + (1.5 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (0.4 / 17.7) * 0.8 * video.videoHeight), Math.round((2.0 / 17.7) * 0.8 * video.videoHeight), Math.round((1.0 / 17.7) * 0.8 * video.videoHeight))
+                                        src_ck3 = src.roi(rect_ck3)
+                                        cv.cvtColor(src_ck3, gray_ck3, cv.COLOR_BGR2GRAY)
+                                        cv.threshold(gray_ck3, thresh_ck3, thresh_black, 255, cv.THRESH_BINARY)
+                                            // if (cv.countNonZero(thresh_ck3) > 800) {
+                                        if (((cv.countNonZero(thresh_ck3) / (thresh_ck3.cols * thresh_ck3.rows)) * 100) > 90) {
+                                            correctPosition4 = true
+                                        } else {
+                                            correctPosition4 = false
+                                        }
+                                        // console.log(cv.countNonZero(thresh_ck2))
+
+                                        // console.log(correctPosition1 && correctPosition2 && correctPosition3 && correctPosition4)
+
+
+
+
+                                        // let detector = new cv.QRCodeDetector()
+                                        // let point1_qr = new cv.Point(0, 0)
+                                        // let point2_qr = new cv.Point(Math.round(point1_corner.y + (2.3 / 17.7) * 0.8 * video.videoHeight), Math.round((3.0 / 17.7) * 0.8 * video.videoHeight), Math.round((3.0 / 17.7) * 0.8 * video.videoHeight))
+                                        // let result = detector.detectAndDecode(src_qr)
+                                        // console.log(result)
+                                        // console.log(detector.detect(src_qr, point_qr))
+
+
+                                        // cv.cvtColor(src_qr, gray_qr, cv.COLOR_BGR2GRAY)
+                                        // let ksize = new cv.Size(9, 9)
+                                        // cv.GaussianBlur(gray_qr, blur_qr, ksize, 0, 0, cv.BORDER_DEFAULT)
+                                        // cv.threshold(blur_qr, thresh_qr, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
+                                        // let kernel = new cv.matFromArray(3, 3, cv.CV_32FC1, [1, 1, 1, 1, 1, 1, 1, 1])
+                                        // let point = new cv.Point(0, 0)
+                                        // cv.dilate(thresh_qr, dilate_qr, kernel)
+                                        // cv.findContours(dilate_qr, contours_qr, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
+                                        // console.log(contours_qr.size())
+
+
+                                        // cv.findContours(thresh_qr, contours_qr, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMP)
+                                        // cv.findContours(edg, contours, hierarchy, cv.RETR_TREE, 1);
+
+                                        if (correctPosition1 && correctPosition2 && correctPosition3 && correctPosition4) {
+                                            // cropping hsv for c and t
+                                            rect_c = new cv.Rect(Math.round(point1_corner.x + (2.1 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (6.3 / 17.7) * 0.8 * video.videoHeight), Math.round((0.7 / 17.7) * 0.8 * video.videoHeight), Math.round((1.7 / 17.7) * 0.8 * video.videoHeight))
+                                            rect_t = new cv.Rect(Math.round(point1_corner.x + (2.1 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + ((6.3 + 1.7) / 17.7) * 0.8 * video.videoHeight), Math.round((0.7 / 17.7) * 0.8 * video.videoHeight), Math.round((1.7 / 17.7) * 0.8 * video.videoHeight))
+                                            hsv_c = hsv.roi(rect_c)
+                                            hsv_t = hsv.roi(rect_t)
+
+                                            // hsv in range
+                                            let lower = [LH, LS, LV, 0];
+                                            let higher = [HH, HS, HV, 0];
+                                            let low = new cv.Mat(hsv_c.rows, hsv_c.cols, hsv_c.type(), lower);
+                                            let high = new cv.Mat(hsv_c.rows, hsv_c.cols, hsv_c.type(), higher);
+                                            cv.inRange(hsv_c, low, high, rng_c)
+                                            cv.inRange(hsv_t, low, high, rng_t)
+
+                                            low = new cv.Mat(hsv_qr.rows, hsv_qr.cols, hsv_qr.type(), lower);
+                                            high = new cv.Mat(hsv_qr.rows, hsv_qr.cols, hsv_qr.type(), higher);
+                                            cv.inRange(hsv_qr, low, high, rng_qr)
+                                                // console.log(cv.countNonZero(rng_qr))
+
+                                            // detect result lines of C & T
+                                            hasC = cv.countNonZero(rng_c)
+                                            hasT = cv.countNonZero(rng_t)
+                                            console.log(hasT)
+                                            if (hasC && hasT) {
+                                                // cv.putText(src, "Result: Positive", point1_corner, cv.FONT_HERSHEY_SIMPLEX, 1, color, 3, 2)
+                                                document.getElementById("status").innerHTML = `<div style="color:red; font-size: 25px; text-align:center">Result: Positive</div>`
+                                            } else if (!hasC && hasT) {
+                                                // cv.putText(src, "Result: Invalid", (100, 100), cv.FONT_HERSHEY_SIMPLEX, 1, color, 3, 2)
+                                                document.getElementById("status").innerHTML = `<div style="color:purple; font-size: 25px; text-align:center">Result: Invalid</div>`
+                                            } else {
+                                                document.getElementById("status").innerHTML = `<div style="color:purple; font-size: 25px; text-align:center">Correct Position</div>`
+                                            }
+
+                                        } else {
+                                            document.getElementById("status").innerHTML = `<div style="color:yellow; font-size: 25px; text-align:center">Incorrect Position</div>`
+                                        }
+
+                                        // canny edge detection for qr
+                                        // cv.Canny(rng_qr, edg_qr, 200, 600, 3, false)
+                                        // low = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), lower);
+                                        // high = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), higher);
                                         // cv.inRange(hsv, low, high, rng)
-                                        let low = new cv.Mat(hsv_c.rows, hsv_c.cols, hsv_c.type(), lower);
-                                        let high = new cv.Mat(hsv_c.rows, hsv_c.cols, hsv_c.type(), higher);
-                                        cv.inRange(hsv_c, low, high, rng_c)
-                                        cv.inRange(hsv_t, low, high, rng_t)
+                                        // cv.Canny(rng, edg, 200, 600, 3, false)
 
-                                        // detect result lines of C & T
-                                        hasC = cv.countNonZero(rng_c)
-                                        hasT = cv.countNonZero(rng_t)
-                                        if (hasC && hasT) {
-                                            // cv.putText(src, "Result: Positive", point1_corner, cv.FONT_HERSHEY_SIMPLEX, 1, color, 3, 2)
-                                            document.getElementById("status").innerHTML = `<div style="color:red; font-size: 25px; text-align:center">Result: Positive</div>`
-                                            console.log("positive")
-                                        }
-                                        if (!hasC && hasT) {
-                                            // cv.putText(src, "Result: Invalid", (100, 100), cv.FONT_HERSHEY_SIMPLEX, 1, color, 3, 2)
-                                            document.getElementById("status").innerHTML = `<div style="color:purple; font-size: 25px; text-align:center">Result: Invalid</div>`
-                                            console.log("invalid")
-                                        }
 
-                                        // canny edge detection
-                                        cv.Canny(rng, edg, 200, 600, 3, false)
+                                        // // find contours
+                                        // cv.findContours(edg, contours, hierarchy, cv.RETR_TREE, 1);
+                                        // let cnt = contours.get(0);
+                                        // for (let i = 0; i < contours.size(); ++i) {
+                                        //     cv.drawContours(ctr, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
+                                        // }
 
-                                        // find contours
-                                        cv.findContours(edg, contours, hierarchy, cv.RETR_TREE, 1);
-                                        let cnt = contours.get(0);
-                                        for (let i = 0; i < contours.size(); ++i) {
-                                            cv.drawContours(ctr, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
-                                        }
-
-                                        cv.imshow("canvas_opencv", src.roi(rect_t))
+                                        cv.imshow("canvas_opencv", thresh_ck2)
 
                                         cv.imshow("canvas", src);
                                         let delay = 1000 / FPS - (Date.now() - begin)
