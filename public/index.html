@@ -23,7 +23,7 @@
             padding: 10px;
             align-items: center;
             justify-content: center;
-            background: black;
+            background: red;
         }
         
         video {
@@ -41,6 +41,14 @@
         #canvas {
             width: 100%;
         }
+        
+        .detection {
+            background: red
+        }
+        
+        .detected {
+            background: green !important;
+        }
     </style>
     <link href="index.css" rel="stylesheet">
 </head>
@@ -53,14 +61,18 @@
         <!-- <button id="snap">Snap Photo</button> -->
         <!-- <canvas id="canvas" hidden="false" width="750" height="560"></canvas> -->
         <canvas id="canvas"></canvas>
-        <div id="status">
+        <div id="status" class="detection">
             <div style="color:purple; font-size: 20px; text-align:center">Result: Invalid</div>
         </div>
         <canvas id="canvas_opencv"></canvas>
         <div id="logger"></div>
         <div class="slidercontainer">
-            <input type="range" min="0" max="255" value="120" class="slider" id="thresh_black">
+            <input type="range" min="0" max="255" value="100" class="slider" id="thresh_black">
             <p><span id="value_thresh_black"></span></p>
+        </div>
+        <div class="slidercontainer">
+            <input type="range" min="0" max="100" value="70" class="slider" id="white_percent">
+            <p><span id="value_white_percent"></span></p>
         </div>
         <div class="slidercontainer">
             <!-- <input type="range" min="0" max="255" value="100" class="slider" id="LH"> -->
@@ -72,7 +84,7 @@
             <!-- <input type="range" min="0" max="255" value="150" class="slider" id="LS"> -->
             <!-- <input type="range" min="0" max="255" value="110" class="slider" id="LS"> -->
             <!-- <input type="range" min="0" max="255" value="70" class="slider" id="LS"> -->
-            <input type="range" min="0" max="255" value="30" class="slider" id="LS">
+            <input type="range" min="0" max="255" value="40" class="slider" id="LS">
             <p><span id="valueLS"></span></p>
         </div>
         <div class="slidercontainer">
@@ -123,6 +135,10 @@
         let thresh_black = parseInt(slider_thresh.value)
         let value_thresh_black = document.getElementById("value_thresh_black")
 
+        let slider_white_percent = document.getElementById("white_percent")
+        let white_percent = parseInt(slider_thresh.value)
+        let value_white_percent = document.getElementById("value_white_percent")
+
 
         function updateValues() {
             LH = parseFloat(slider_LH.value)
@@ -140,6 +156,9 @@
 
             thresh_black = parseInt(slider_thresh.value)
             value_thresh_black.innerHTML = slider_thresh.value
+
+            white_percent = parseInt(slider_white_percent.value)
+            value_white_percent.innerHTML = slider_white_percent.value
         }
 
         function onOpenCvReady() {
@@ -238,11 +257,6 @@
                                 let thresh_ck3 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
 
 
-
-
-
-
-
                                 let hasC = false
                                 let hasT = false
                                 let correctPosition1 = false
@@ -256,6 +270,11 @@
                                 let hierarchy = new cv.Mat();
                                 let contours_qr = new cv.MatVector();
 
+                                let color = new cv.Scalar(0, 0, 255)
+                                let color_detecting = new cv.Scalar(255, 255, 0, 255)
+                                let color_positive = new cv.Scalar(255, 0, 0, 255)
+                                let color_negative = new cv.Scalar(0, 255, 0, 255)
+                                let color_invalid = new cv.Scalar(255, 0, 255, 255)
 
 
                                 const FPS = 30
@@ -267,7 +286,6 @@
                                         cap.read(src)
 
                                         // calculate detection box dimension and drawing the box
-                                        let color = new cv.Scalar(0, 0, 255)
                                         let point1_corner = new cv.Point(video.videoWidth / 2 - box_dimension_x / 2, video.videoHeight / 2 - box_dimension_y / 2)
                                         let point1_edge1 = new cv.Point(point1_corner.x, point1_corner.y + video.videoHeight * 0.1)
                                         let point1_edge2 = new cv.Point(point1_corner.x + video.videoHeight * 0.1, point1_corner.y)
@@ -289,6 +307,10 @@
                                         cv.line(src, point4_corner, point4_edge1, color, 5, cv.LINE_8, 0)
                                         cv.line(src, point4_corner, point4_edge2, color, 5, cv.LINE_8, 0)
 
+                                        let point_detecting = new cv.Point(point1_corner.x - box_dimension_x / 6, point1_corner.y + box_dimension_y / 2)
+                                        let point_detected = new cv.Point(point1_corner.x - box_dimension_x / 3, point1_corner.y + box_dimension_y / 2)
+
+
                                         // bgr to hsv
                                         cv.cvtColor(src, hsv, cv.COLOR_BGR2HSV)
 
@@ -301,7 +323,8 @@
                                             // if (cv.countNonZero(thresh_qr) < 4000) {
                                             // console.log((cv.countNonZero(thresh_qr) / (thresh_qr.cols * thresh_qr.rows)) * 100)
                                         document.getElementById("logger").innerHTML = `${((cv.countNonZero(thresh_qr) / (thresh_qr.cols * thresh_qr.rows)) * 100)}`
-                                        if (((cv.countNonZero(thresh_qr) / (thresh_qr.cols * thresh_qr.rows)) * 100) < 70) {
+                                            // console.log(white_percent)
+                                        if (((cv.countNonZero(thresh_qr) / (thresh_qr.cols * thresh_qr.rows)) * 100) < white_percent) {
                                             correctPosition1 = true
                                                 // console.log(thresh_qr.shape())
                                         } else {
@@ -373,7 +396,9 @@
                                         // cv.findContours(edg, contours, hierarchy, cv.RETR_TREE, 1);
 
                                         if (correctPosition1 && correctPosition2 && correctPosition3 && correctPosition4) {
-                                            // cropping hsv for c and t
+                                            document.getElementById("status").classList.add('detected')
+                                            document.getElementById("status").innerHTML = `<div style="color:black; font-size: 40px; text-align:center">Test Strip Detected</div>`
+                                                // cropping hsv for c and t
                                             rect_c = new cv.Rect(Math.round(point1_corner.x + (2.1 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (6.3 / 17.7) * 0.8 * video.videoHeight), Math.round((0.7 / 17.7) * 0.8 * video.videoHeight), Math.round((1.7 / 17.7) * 0.8 * video.videoHeight))
                                             rect_t = new cv.Rect(Math.round(point1_corner.x + (2.1 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + ((6.3 + 1.7) / 17.7) * 0.8 * video.videoHeight), Math.round((0.7 / 17.7) * 0.8 * video.videoHeight), Math.round((1.7 / 17.7) * 0.8 * video.videoHeight))
                                             hsv_c = hsv.roi(rect_c)
@@ -395,19 +420,24 @@
                                             // detect result lines of C & T
                                             hasC = cv.countNonZero(rng_c)
                                             hasT = cv.countNonZero(rng_t)
-                                            console.log(hasT)
+                                                // console.log(hasT)
                                             if (hasC && hasT) {
-                                                // cv.putText(src, "Result: Positive", point1_corner, cv.FONT_HERSHEY_SIMPLEX, 1, color, 3, 2)
-                                                document.getElementById("status").innerHTML = `<div style="color:red; font-size: 25px; text-align:center">Result: Positive</div>`
-                                            } else if (!hasC && hasT) {
-                                                // cv.putText(src, "Result: Invalid", (100, 100), cv.FONT_HERSHEY_SIMPLEX, 1, color, 3, 2)
-                                                document.getElementById("status").innerHTML = `<div style="color:purple; font-size: 25px; text-align:center">Result: Invalid</div>`
-                                            } else {
-                                                document.getElementById("status").innerHTML = `<div style="color:purple; font-size: 25px; text-align:center">Correct Position</div>`
-                                            }
+                                                // document.getElementById("status").innerHTML = `<div style="color:red; font-size: 25px; text-align:center">Result: Positive</div>`
+                                                cv.putText(src, "Result : Positive", point_detected, cv.FONT_HERSHEY_SIMPLEX, 1, color_positive, 2, 2)
 
+                                            } else if (hasC && !hasT) {
+                                                // document.getElementById("status").innerHTML = `<div style="color:green; font-size: 25px; text-align:center">Result: Negative</div>`
+                                                cv.putText(src, "Result : Negative", point_detected, cv.FONT_HERSHEY_SIMPLEX, 1, color_negative, 2, 2)
+                                            } else {
+                                                // document.getElementById("status").innerHTML = `<div style="color:purple; font-size: 25px; text-align:center">Result Invalid</div>`
+                                                cv.putText(src, "Result : Invalid", point_detected, cv.FONT_HERSHEY_SIMPLEX, 1, color_invalid, 2, 2)
+                                            }
                                         } else {
-                                            document.getElementById("status").innerHTML = `<div style="color:yellow; font-size: 25px; text-align:center">Incorrect Position</div>`
+                                            document.getElementById("status").classList.remove('detected')
+                                            document.getElementById("status").innerHTML = `<div style="color:black; font-size: 40px; text-align:center">Incorrect Position</div>`
+                                            cv.putText(src, "Detecting...", point_detecting, cv.FONT_HERSHEY_SIMPLEX, 1, color_detecting, 2, 2)
+                                                // cv.putText(src, "Result: Positive", point1_corner, cv.FONT_HERSHEY_SIMPLEX, 1, color, 3, 2)
+
                                         }
 
                                         // canny edge detection for qr
