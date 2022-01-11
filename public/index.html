@@ -49,6 +49,11 @@
         .detected {
             background: green !important;
         }
+        
+        .slidercontainer {
+            padding-top: 50px;
+            text-align: center;
+        }
     </style>
     <link href="index.css" rel="stylesheet">
 </head>
@@ -64,17 +69,16 @@
         <div id="status" class="detection">
             <div style="color:purple; font-size: 20px; text-align:center">Result: Invalid</div>
         </div>
-        <canvas id="canvas_opencv"></canvas>
-        <div id="logger"></div>
+        <div id="logger" style="display:none"></div>
         <div class="slidercontainer">
-            <input type="range" min="0" max="255" value="100" class="slider" id="thresh_black">
-            <p><span id="value_thresh_black"></span></p>
+            White: <input type="range" min="0" max="255" value="100" class="slider" id="thresh_black">
+            <p><span id="value_thresh_black" style="display:none"></span></p>
         </div>
-        <div class="slidercontainer">
+        <div class="slidercontainer" style="display:none">
             <input type="range" min="0" max="100" value="70" class="slider" id="white_percent">
             <p><span id="value_white_percent"></span></p>
         </div>
-        <div class="slidercontainer">
+        <div class="slidercontainer" style="display:none">
             <!-- <input type="range" min="0" max="255" value="100" class="slider" id="LH"> -->
             <!-- <input type="range" min="0" max="255" value="116" class="slider" id="LH">  -->
             <input type="range" min="0" max="255" value="74" class="slider" id="LH">
@@ -84,28 +88,29 @@
             <!-- <input type="range" min="0" max="255" value="150" class="slider" id="LS"> -->
             <!-- <input type="range" min="0" max="255" value="110" class="slider" id="LS"> -->
             <!-- <input type="range" min="0" max="255" value="70" class="slider" id="LS"> -->
-            <input type="range" min="0" max="255" value="40" class="slider" id="LS">
-            <p><span id="valueLS"></span></p>
+            Red: <input type="range" min="0" max="255" value="40" class="slider" id="LS">
+            <p><span id="valueLS" style="display:none"></span></p>
         </div>
-        <div class="slidercontainer">
+        <div class="slidercontainer" style="display:none">
             <!-- <input type="range" min="0" max="255" value="0" class="slider" id="LV"> -->
             <!-- <input type="range" min="0" max="255" value="50" class="slider" id="LV"> -->
             <input type="range" min="0" max="255" value="40" class="slider" id="LV">
             <p><span id="valueLV"></span></p>
         </div>
-        <div class="slidercontainer">
+        <div class="slidercontainer" style="display:none">
             <!-- <input type="range" min="0" max="180" value="144" class="slider" id="HH"> -->
             <input type="range" min="0" max="180" value="180" class="slider" id="HH">
             <p><span id="valueHH"></span></p>
         </div>
-        <div class="slidercontainer">
+        <div class="slidercontainer" style="display:none">
             <input type="range" min="0" max="255" value="255" class="slider" id="HS">
             <p><span id="valueHS"></span></p>
         </div>
-        <div class="slidercontainer">
+        <div class="slidercontainer" style="display:none">
             <input type="range" min="0" max="255" value="255" class="slider" id="HV">
             <p><span id="valueHV"></span></p>
         </div>
+        <canvas id="canvas_opencv"></canvas>
     </div>
     <div>
         <div id="predictions"></div>
@@ -164,10 +169,6 @@
         function onOpenCvReady() {
             cv['onRuntimeInitialized'] = () => {
                 console.log("OpenCV.js is ready")
-                    //video
-                    // video.setAttribute('autoplay', '');
-                    // video.setAttribute('muted', '');
-                    // video.setAttribute('playsinline', '');
                 if (navigator.mediaDevices === undefined) {
                     navigator.mediaDevices = {};
                 }
@@ -192,6 +193,9 @@
                 }
 
                 var video = document.getElementById('video');
+                video.setAttribute('autoplay', '');
+                video.setAttribute('muted', '');
+                video.setAttribute('playsinline', '');
 
                 //後置攝像頭
                 navigator.mediaDevices.getUserMedia({
