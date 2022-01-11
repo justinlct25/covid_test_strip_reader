@@ -52,7 +52,15 @@
         
         .slidercontainer {
             padding-top: 50px;
-            text-align: center;
+            text-align: left;
+        }
+        
+        input[type=range] {
+            /* height: 500px; */
+            position: relative;
+            transform: scale(4.5);
+            width: 20%;
+            transform-origin: 0 0;
         }
     </style>
     <link href="index.css" rel="stylesheet">
@@ -67,12 +75,16 @@
         <!-- <canvas id="canvas" hidden="false" width="750" height="560"></canvas> -->
         <canvas id="canvas"></canvas>
         <div id="status" class="detection">
-            <div style="color:purple; font-size: 20px; text-align:center">Result: Invalid</div>
+            <div style="color:purple; font-size: 40px; text-align:center">Incorrect Position</div>
         </div>
         <div id="logger" style="display:none"></div>
         <div class="slidercontainer">
+            Size: <input type="range" min="1" max="10" value="8" class="slider" id="box_size">
+            <p><span id="value_box_size"></span></p>
+        </div>
+        <div class="slidercontainer">
             White: <input type="range" min="0" max="255" value="100" class="slider" id="thresh_black">
-            <p><span id="value_thresh_black" style="display:none"></span></p>
+            <p><span id="value_thresh_black"></span></p>
         </div>
         <div class="slidercontainer" style="display:none">
             <input type="range" min="0" max="100" value="70" class="slider" id="white_percent">
@@ -89,7 +101,7 @@
             <!-- <input type="range" min="0" max="255" value="110" class="slider" id="LS"> -->
             <!-- <input type="range" min="0" max="255" value="70" class="slider" id="LS"> -->
             Red: <input type="range" min="0" max="255" value="40" class="slider" id="LS">
-            <p><span id="valueLS" style="display:none"></span></p>
+            <p><span id="valueLS"></span></p>
         </div>
         <div class="slidercontainer" style="display:none">
             <!-- <input type="range" min="0" max="255" value="0" class="slider" id="LV"> -->
@@ -144,6 +156,13 @@
         let white_percent = parseInt(slider_thresh.value)
         let value_white_percent = document.getElementById("value_white_percent")
 
+        let slider_box_size = document.getElementById("box_size")
+        let box_size = parseFloat(slider_box_size.value * 0.1)
+        let value_box_size = document.getElementById("value_box_size")
+
+        let box_drawing_offset = (box_size / 0.8) * 0.1
+
+        let font_scale = (box_size / 0.8) * 1
 
         function updateValues() {
             LH = parseFloat(slider_LH.value)
@@ -164,6 +183,13 @@
 
             white_percent = parseInt(slider_white_percent.value)
             value_white_percent.innerHTML = slider_white_percent.value
+
+            box_size = parseFloat(slider_box_size.value * 0.1).toFixed(1)
+            value_box_size.innerHTML = box_size
+
+            box_drawing_offset = (box_size / 0.8) * 0.1
+
+            font_scale = (box_size / 0.8) * 1
         }
 
         function onOpenCvReady() {
@@ -232,44 +258,16 @@
                                 let edg = new cv.Mat(video.height, video.width, cv.CV_8UC1)
                                 let dst = new cv.Mat(video.height, video.width, cv.CV_8UC4)
                                 let ctr = cv.Mat.zeros(video.height, video.width, cv.CV_8UC3);
-                                let hsv_c = new cv.Mat(video.height * ((1.7 / 17.7) * 0.8), video.width * ((0.7 / 17.7) * 0.8), cv.CV_8UC1)
-                                let hsv_t = new cv.Mat(video.height * ((1.7 / 17.7) * 0.8), video.width * ((0.7 / 17.7) * 0.8), cv.CV_8UC1)
-                                let rng_c = new cv.Mat(video.height * ((1.7 / 17.7) * 0.8), video.width * ((0.7 / 17.7) * 0.8), cv.CV_8UC1)
-                                let rng_t = new cv.Mat(video.height * ((1.7 / 17.7) * 0.8), video.width * ((0.7 / 17.7) * 0.8), cv.CV_8UC1)
-                                let rng_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let src_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let hsv_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let gray_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let blur_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let thresh_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let kernel_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let close_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let dilate_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let edg_qr = new cv.Mat(video.height * ((3.0 / 17.7) * 0.8), video.height * ((3.0 / 17.7) * 0.8), cv.CV_8UC1)
-
-                                let check1 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let check2 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let check3 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let src_ck1 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let src_ck2 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let src_ck3 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let gray_ck1 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let gray_ck2 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let gray_ck3 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let thresh_ck1 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let thresh_ck2 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
-                                let thresh_ck3 = new cv.Mat(video.height * ((1.0 / 17.7) * 0.8), video.height * ((2.0 / 17.7) * 0.8), cv.CV_8UC1)
-
 
                                 let hasC = false
                                 let hasT = false
                                 let correctPosition1 = false
                                 let correctPosition2 = false
                                 let correctPosition3 = false
+                                let correctPosition4 = false
+                                let correctPosition5 = false
 
                                 //3.4*0.7  6.3*2.1
-                                let box_dimension_y = video.videoHeight * 0.8
-                                let box_dimension_x = box_dimension_y * (5 / 17.7)
                                 let contours = new cv.MatVector();
                                 let hierarchy = new cv.Mat();
                                 let contours_qr = new cv.MatVector();
@@ -280,34 +278,66 @@
                                 let color_negative = new cv.Scalar(0, 255, 0, 255)
                                 let color_invalid = new cv.Scalar(255, 0, 255, 255)
 
-
                                 const FPS = 30
 
                                 function processVideo() {
                                     updateValues()
+                                    let hsv_c = new cv.Mat(video.height * ((1.7 / 17.7) * box_size), video.width * ((0.7 / 17.7) * box_size), cv.CV_8UC1)
+                                    let hsv_t = new cv.Mat(video.height * ((1.7 / 17.7) * box_size), video.width * ((0.7 / 17.7) * box_size), cv.CV_8UC1)
+                                    let rng_c = new cv.Mat(video.height * ((1.7 / 17.7) * box_size), video.width * ((0.7 / 17.7) * box_size), cv.CV_8UC1)
+                                    let rng_t = new cv.Mat(video.height * ((1.7 / 17.7) * box_size), video.width * ((0.7 / 17.7) * box_size), cv.CV_8UC1)
+
+                                    let rng_qr = new cv.Mat(video.height * ((3.0 / 17.7) * box_size), video.height * ((3.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let src_qr = new cv.Mat(video.height * ((3.0 / 17.7) * box_size), video.height * ((3.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let hsv_qr = new cv.Mat(video.height * ((3.0 / 17.7) * box_size), video.height * ((3.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let gray_qr = new cv.Mat(video.height * ((3.0 / 17.7) * box_size), video.height * ((3.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let blur_qr = new cv.Mat(video.height * ((3.0 / 17.7) * box_size), video.height * ((3.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let thresh_qr = new cv.Mat(video.height * ((3.0 / 17.7) * box_size), video.height * ((3.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let kernel_qr = new cv.Mat(video.height * ((3.0 / 17.7) * box_size), video.height * ((3.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let close_qr = new cv.Mat(video.height * ((3.0 / 17.7) * box_size), video.height * ((3.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let dilate_qr = new cv.Mat(video.height * ((3.0 / 17.7) * box_size), video.height * ((3.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let edg_qr = new cv.Mat(video.height * ((3.0 / 17.7) * box_size), video.height * ((3.0 / 17.7) * box_size), cv.CV_8UC1)
+
+                                    let check1 = new cv.Mat(video.height * ((1.0 / 17.7) * box_size), video.height * ((2.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let check2 = new cv.Mat(video.height * ((1.0 / 17.7) * box_size), video.height * ((2.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let check3 = new cv.Mat(video.height * ((1.0 / 17.7) * box_size), video.height * ((2.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let check4 = new cv.Mat(video.height * ((3.0 / 17.7) * box_size), video.height * ((1.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let src_ck1 = new cv.Mat(video.height * ((1.0 / 17.7) * box_size), video.height * ((2.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let src_ck2 = new cv.Mat(video.height * ((1.0 / 17.7) * box_size), video.height * ((2.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let src_ck3 = new cv.Mat(video.height * ((1.0 / 17.7) * box_size), video.height * ((2.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let src_ck4 = new cv.Mat(video.height * ((3.0 / 17.7) * box_size), video.height * ((1.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let gray_ck1 = new cv.Mat(video.height * ((1.0 / 17.7) * box_size), video.height * ((2.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let gray_ck2 = new cv.Mat(video.height * ((1.0 / 17.7) * box_size), video.height * ((2.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let gray_ck3 = new cv.Mat(video.height * ((1.0 / 17.7) * box_size), video.height * ((2.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let gray_ck4 = new cv.Mat(video.height * ((3.0 / 17.7) * box_size), video.height * ((1.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let thresh_ck1 = new cv.Mat(video.height * ((1.0 / 17.7) * box_size), video.height * ((2.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let thresh_ck2 = new cv.Mat(video.height * ((1.0 / 17.7) * box_size), video.height * ((2.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let thresh_ck3 = new cv.Mat(video.height * ((1.0 / 17.7) * box_size), video.height * ((2.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let thresh_ck4 = new cv.Mat(video.height * ((3.0 / 17.7) * box_size), video.height * ((1.0 / 17.7) * box_size), cv.CV_8UC1)
+                                    let box_dimension_y = video.videoHeight * box_size
+                                    let box_dimension_x = box_dimension_y * (5 / 17.7)
                                     try {
                                         let begin = Date.now()
                                         cap.read(src)
-
-                                        // calculate detection box dimension and drawing the box
+                                            // calculate detection box dimension and drawing the box
                                         let point1_corner = new cv.Point(video.videoWidth / 2 - box_dimension_x / 2, video.videoHeight / 2 - box_dimension_y / 2)
-                                        let point1_edge1 = new cv.Point(point1_corner.x, point1_corner.y + video.videoHeight * 0.1)
-                                        let point1_edge2 = new cv.Point(point1_corner.x + video.videoHeight * 0.1, point1_corner.y)
+                                        let point1_edge1 = new cv.Point(point1_corner.x, point1_corner.y + video.videoHeight * box_drawing_offset)
+                                        let point1_edge2 = new cv.Point(point1_corner.x + video.videoHeight * box_drawing_offset, point1_corner.y)
                                         cv.line(src, point1_corner, point1_edge1, color, 5, cv.LINE_8, 0)
                                         cv.line(src, point1_corner, point1_edge2, color, 5, cv.LINE_8, 0)
                                         let point2_corner = new cv.Point(video.videoWidth / 2 + box_dimension_x / 2, video.videoHeight / 2 - box_dimension_y / 2)
-                                        let point2_edge1 = new cv.Point(point2_corner.x, point1_corner.y + video.videoHeight * 0.1)
-                                        let point2_edge2 = new cv.Point(point2_corner.x - video.videoHeight * 0.1, point1_corner.y)
+                                        let point2_edge1 = new cv.Point(point2_corner.x, point1_corner.y + video.videoHeight * box_drawing_offset)
+                                        let point2_edge2 = new cv.Point(point2_corner.x - video.videoHeight * box_drawing_offset, point1_corner.y)
                                         cv.line(src, point2_corner, point2_edge1, color, 5, cv.LINE_8, 0)
                                         cv.line(src, point2_corner, point2_edge2, color, 5, cv.LINE_8, 0)
                                         let point3_corner = new cv.Point(video.videoWidth / 2 + box_dimension_x / 2, video.videoHeight / 2 + box_dimension_y / 2)
-                                        let point3_edge1 = new cv.Point(point3_corner.x, point3_corner.y - video.videoHeight * 0.1)
-                                        let point3_edge2 = new cv.Point(point3_corner.x - video.videoHeight * 0.1, point3_corner.y)
+                                        let point3_edge1 = new cv.Point(point3_corner.x, point3_corner.y - video.videoHeight * box_drawing_offset)
+                                        let point3_edge2 = new cv.Point(point3_corner.x - video.videoHeight * box_drawing_offset, point3_corner.y)
                                         cv.line(src, point3_corner, point3_edge1, color, 5, cv.LINE_8, 0)
                                         cv.line(src, point3_corner, point3_edge2, color, 5, cv.LINE_8, 0)
                                         let point4_corner = new cv.Point(video.videoWidth / 2 - box_dimension_x / 2, video.videoHeight / 2 + box_dimension_y / 2)
-                                        let point4_edge1 = new cv.Point(point4_corner.x, point4_corner.y - video.videoHeight * 0.1)
-                                        let point4_edge2 = new cv.Point(point4_corner.x + video.videoHeight * 0.1, point4_corner.y)
+                                        let point4_edge1 = new cv.Point(point4_corner.x, point4_corner.y - video.videoHeight * box_drawing_offset)
+                                        let point4_edge2 = new cv.Point(point4_corner.x + video.videoHeight * box_drawing_offset, point4_corner.y)
                                         cv.line(src, point4_corner, point4_edge1, color, 5, cv.LINE_8, 0)
                                         cv.line(src, point4_corner, point4_edge2, color, 5, cv.LINE_8, 0)
 
@@ -319,24 +349,19 @@
                                         cv.cvtColor(src, hsv, cv.COLOR_BGR2HSV)
 
                                         // detect QR code for position detection
-                                        rect_qr = new cv.Rect(Math.round(point1_corner.x + (1 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (2.3 / 17.7) * 0.8 * video.videoHeight), Math.round((3.0 / 17.7) * 0.8 * video.videoHeight), Math.round((3.0 / 17.7) * 0.8 * video.videoHeight))
-                                            // rect_qr = new cv.Rect(Math.round(point1_corner.x + (0.5 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (1 / 17.7) * 0.8 * video.videoHeight), Math.round((3.0 / 17.7) * 0.8 * video.videoHeight), Math.round((3.0 / 17.7) * 0.8 * video.videoHeight))
+                                        rect_qr = new cv.Rect(Math.round(point1_corner.x + (1 / 17.7) * box_size * video.videoHeight), Math.round(point1_corner.y + (2.3 / 17.7) * box_size * video.videoHeight), Math.round((3.0 / 17.7) * box_size * video.videoHeight), Math.round((3.0 / 17.7) * box_size * video.videoHeight))
                                         src_qr = src.roi(rect_qr)
                                         cv.cvtColor(src_qr, gray_qr, cv.COLOR_BGR2GRAY)
                                         cv.threshold(gray_qr, thresh_qr, thresh_black, 255, cv.THRESH_BINARY)
                                             // if (cv.countNonZero(thresh_qr) < 4000) {
-                                            // console.log((cv.countNonZero(thresh_qr) / (thresh_qr.cols * thresh_qr.rows)) * 100)
                                         document.getElementById("logger").innerHTML = `${((cv.countNonZero(thresh_qr) / (thresh_qr.cols * thresh_qr.rows)) * 100)}`
-                                            // console.log(white_percent)
                                         if (((cv.countNonZero(thresh_qr) / (thresh_qr.cols * thresh_qr.rows)) * 100) < white_percent) {
                                             correctPosition1 = true
-                                                // console.log(thresh_qr.shape())
                                         } else {
                                             correctPosition1 = false
                                         }
-                                        // console.log(cv.countNonZero(thresh_qr))
 
-                                        let rect_ck1 = new cv.Rect(Math.round(point1_corner.x + (1.5 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (11.0 / 17.7) * 0.8 * video.videoHeight), Math.round((2.0 / 17.7) * 0.8 * video.videoHeight), Math.round((1.0 / 17.7) * 0.8 * video.videoHeight))
+                                        let rect_ck1 = new cv.Rect(Math.round(point1_corner.x + (1.5 / 17.7) * box_size * video.videoHeight), Math.round(point1_corner.y + (11.0 / 17.7) * box_size * video.videoHeight), Math.round((2.0 / 17.7) * box_size * video.videoHeight), Math.round((1.0 / 17.7) * box_size * video.videoHeight))
                                         src_ck1 = src.roi(rect_ck1)
                                         cv.cvtColor(src_ck1, gray_ck1, cv.COLOR_BGR2GRAY)
                                         cv.threshold(gray_ck1, thresh_ck1, thresh_black, 255, cv.THRESH_BINARY)
@@ -346,9 +371,8 @@
                                         } else {
                                             correctPosition2 = false
                                         }
-                                        // console.log(cv.countNonZero(thresh_ck1))
 
-                                        let rect_ck2 = new cv.Rect(Math.round(point1_corner.x + (1.5 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (16.0 / 17.7) * 0.8 * video.videoHeight), Math.round((2.0 / 17.7) * 0.8 * video.videoHeight), Math.round((1.0 / 17.7) * 0.8 * video.videoHeight))
+                                        let rect_ck2 = new cv.Rect(Math.round(point1_corner.x + (1.5 / 17.7) * box_size * video.videoHeight), Math.round(point1_corner.y + (16.0 / 17.7) * box_size * video.videoHeight), Math.round((2.0 / 17.7) * box_size * video.videoHeight), Math.round((1.0 / 17.7) * box_size * video.videoHeight))
                                         src_ck2 = src.roi(rect_ck2)
                                         cv.cvtColor(src_ck2, gray_ck2, cv.COLOR_BGR2GRAY)
                                         cv.threshold(gray_ck2, thresh_ck2, thresh_black, 255, cv.THRESH_BINARY)
@@ -358,9 +382,8 @@
                                         } else {
                                             correctPosition3 = false
                                         }
-                                        // console.log(cv.countNonZero(thresh_ck2))
 
-                                        let rect_ck3 = new cv.Rect(Math.round(point1_corner.x + (1.5 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (0.4 / 17.7) * 0.8 * video.videoHeight), Math.round((2.0 / 17.7) * 0.8 * video.videoHeight), Math.round((1.0 / 17.7) * 0.8 * video.videoHeight))
+                                        let rect_ck3 = new cv.Rect(Math.round(point1_corner.x + (1.5 / 17.7) * box_size * video.videoHeight), Math.round(point1_corner.y + (0.4 / 17.7) * box_size * video.videoHeight), Math.round((2.0 / 17.7) * box_size * video.videoHeight), Math.round((1.0 / 17.7) * box_size * video.videoHeight))
                                         src_ck3 = src.roi(rect_ck3)
                                         cv.cvtColor(src_ck3, gray_ck3, cv.COLOR_BGR2GRAY)
                                         cv.threshold(gray_ck3, thresh_ck3, thresh_black, 255, cv.THRESH_BINARY)
@@ -370,20 +393,23 @@
                                         } else {
                                             correctPosition4 = false
                                         }
-                                        // console.log(cv.countNonZero(thresh_ck2))
 
-                                        // console.log(correctPosition1 && correctPosition2 && correctPosition3 && correctPosition4)
-
-
-
+                                        let rect_ck4 = new cv.Rect(Math.round(point1_corner.x + (0.2 / 17.7) * box_size * video.videoHeight), Math.round(point1_corner.y + (6.5 / 17.7) * box_size * video.videoHeight), Math.round((1.0 / 17.7) * box_size * video.videoHeight), Math.round((3.0 / 17.7) * box_size * video.videoHeight))
+                                        src_ck4 = src.roi(rect_ck4)
+                                        cv.cvtColor(src_ck4, gray_ck4, cv.COLOR_BGR2GRAY)
+                                        cv.threshold(gray_ck4, thresh_ck4, thresh_black, 255, cv.THRESH_BINARY)
+                                        if (((cv.countNonZero(thresh_ck4) / (thresh_ck4.cols * thresh_ck4.rows)) * 100) > 90) {
+                                            correctPosition5 = true
+                                        } else {
+                                            correctPosition5 = false
+                                        }
 
                                         // let detector = new cv.QRCodeDetector()
                                         // let point1_qr = new cv.Point(0, 0)
-                                        // let point2_qr = new cv.Point(Math.round(point1_corner.y + (2.3 / 17.7) * 0.8 * video.videoHeight), Math.round((3.0 / 17.7) * 0.8 * video.videoHeight), Math.round((3.0 / 17.7) * 0.8 * video.videoHeight))
+                                        // let point2_qr = new cv.Point(Math.round(point1_corner.y + (2.3 / 17.7) * box_size * video.videoHeight), Math.round((3.0 / 17.7) * box_size * video.videoHeight), Math.round((3.0 / 17.7) * box_size * video.videoHeight))
                                         // let result = detector.detectAndDecode(src_qr)
                                         // console.log(result)
                                         // console.log(detector.detect(src_qr, point_qr))
-
 
                                         // cv.cvtColor(src_qr, gray_qr, cv.COLOR_BGR2GRAY)
                                         // let ksize = new cv.Size(9, 9)
@@ -395,16 +421,15 @@
                                         // cv.findContours(dilate_qr, contours_qr, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
                                         // console.log(contours_qr.size())
 
-
                                         // cv.findContours(thresh_qr, contours_qr, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMP)
                                         // cv.findContours(edg, contours, hierarchy, cv.RETR_TREE, 1);
 
-                                        if (correctPosition1 && correctPosition2 && correctPosition3 && correctPosition4) {
+                                        if (correctPosition1 && correctPosition2 && correctPosition3 && correctPosition4 && correctPosition5) {
                                             document.getElementById("status").classList.add('detected')
                                             document.getElementById("status").innerHTML = `<div style="color:black; font-size: 40px; text-align:center">Test Strip Detected</div>`
                                                 // cropping hsv for c and t
-                                            rect_c = new cv.Rect(Math.round(point1_corner.x + (2.1 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + (6.3 / 17.7) * 0.8 * video.videoHeight), Math.round((0.7 / 17.7) * 0.8 * video.videoHeight), Math.round((1.7 / 17.7) * 0.8 * video.videoHeight))
-                                            rect_t = new cv.Rect(Math.round(point1_corner.x + (2.1 / 17.7) * 0.8 * video.videoHeight), Math.round(point1_corner.y + ((6.3 + 1.7) / 17.7) * 0.8 * video.videoHeight), Math.round((0.7 / 17.7) * 0.8 * video.videoHeight), Math.round((1.7 / 17.7) * 0.8 * video.videoHeight))
+                                            rect_c = new cv.Rect(Math.round(point1_corner.x + (2.1 / 17.7) * box_size * video.videoHeight), Math.round(point1_corner.y + (6.3 / 17.7) * box_size * video.videoHeight), Math.round((0.7 / 17.7) * box_size * video.videoHeight), Math.round((1.7 / 17.7) * box_size * video.videoHeight))
+                                            rect_t = new cv.Rect(Math.round(point1_corner.x + (2.1 / 17.7) * box_size * video.videoHeight), Math.round(point1_corner.y + ((6.3 + 1.7) / 17.7) * box_size * video.videoHeight), Math.round((0.7 / 17.7) * box_size * video.videoHeight), Math.round((1.7 / 17.7) * box_size * video.videoHeight))
                                             hsv_c = hsv.roi(rect_c)
                                             hsv_t = hsv.roi(rect_t)
 
@@ -426,22 +451,16 @@
                                             hasT = cv.countNonZero(rng_t)
                                                 // console.log(hasT)
                                             if (hasC && hasT) {
-                                                // document.getElementById("status").innerHTML = `<div style="color:red; font-size: 25px; text-align:center">Result: Positive</div>`
-                                                cv.putText(src, "Result : Positive", point_detected, cv.FONT_HERSHEY_SIMPLEX, 1, color_positive, 2, 2)
-
+                                                cv.putText(src, "Result : Positive", point_detected, cv.FONT_HERSHEY_SIMPLEX, font_scale, color_positive, 2, 2)
                                             } else if (hasC && !hasT) {
-                                                // document.getElementById("status").innerHTML = `<div style="color:green; font-size: 25px; text-align:center">Result: Negative</div>`
-                                                cv.putText(src, "Result : Negative", point_detected, cv.FONT_HERSHEY_SIMPLEX, 1, color_negative, 2, 2)
+                                                cv.putText(src, "Result : Negative", point_detected, cv.FONT_HERSHEY_SIMPLEX, font_scale, color_negative, 2, 2)
                                             } else {
-                                                // document.getElementById("status").innerHTML = `<div style="color:purple; font-size: 25px; text-align:center">Result Invalid</div>`
-                                                cv.putText(src, "Result : Invalid", point_detected, cv.FONT_HERSHEY_SIMPLEX, 1, color_invalid, 2, 2)
+                                                cv.putText(src, "Result : Invalid", point_detected, cv.FONT_HERSHEY_SIMPLEX, font_scale, color_invalid, 2, 2)
                                             }
                                         } else {
                                             document.getElementById("status").classList.remove('detected')
                                             document.getElementById("status").innerHTML = `<div style="color:black; font-size: 40px; text-align:center">Incorrect Position</div>`
-                                            cv.putText(src, "Detecting...", point_detecting, cv.FONT_HERSHEY_SIMPLEX, 1, color_detecting, 2, 2)
-                                                // cv.putText(src, "Result: Positive", point1_corner, cv.FONT_HERSHEY_SIMPLEX, 1, color, 3, 2)
-
+                                            cv.putText(src, ` Detecting...`, point_detecting, cv.FONT_HERSHEY_SIMPLEX, font_scale, color_detecting, 2, 2)
                                         }
 
                                         // canny edge detection for qr
@@ -468,7 +487,7 @@
                                         console.error(err)
                                             // clearInterval(interval)
                                             // interval = setInterval(processVideo, 200)
-                                            // location.reload()
+                                        location.reload()
                                     }
                                 }
                                 // setTimeout(processVideo, 1000)
@@ -490,15 +509,11 @@
                     ctx.drawImage(video, 0, 0, 750, 560);
                     ctx_opencv.drawImage(video, 0, 0, 750, 560);
                     imageData = ctx.getImageData(0, 0, 750, 560);
-                    //console.log("getVideoFrame");
                 }
             }
         }
     </script>
-    <!-- <script async src="opencv.js" onload="onOpenCvReady()"></script> -->
     <script async src="https://docs.opencv.org/master/opencv.js" type="text/javascript" onload="onOpenCvReady()"></script>
-
-    <!-- <script async src="opencv.js"></script> -->
 
 
 </body>
